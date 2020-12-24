@@ -25,8 +25,7 @@ def create_app(test_config=None):
   @app.after_request
   def after_request(response):
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    # response.headers.add('Access-Control-Allow-Methods', 'GET,PATCH,POST,DELETE,OPTIONS')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PATCH,POST,DELETE,OPTIONS')
     return response
 
   '''
@@ -56,11 +55,11 @@ def create_app(test_config=None):
   Clicking on the page numbers should update the questions. 
   '''
   @app.route('/questions')
-  def paginated_questions():
-    current_category = request.args.get('category', 1, type=int)
+  def get_paginated_questions():
     categories = util.get_categories(formatted=True)
+    current_category = request.args.get('cateogry')
 
-    questions = util.get_questions(category_id=current_category, formatted=False)
+    questions = util.get_questions(formatted=False)
     page = request.args.get('page', 1, type=int)
     start = QUESTIONS_PER_PAGE * (page - 1)
     end = start + QUESTIONS_PER_PAGE
@@ -74,6 +73,16 @@ def create_app(test_config=None):
       "current_category": current_category
       })
 
+  @app.route('/categories/<category_id>/questions')
+  def get_questions_by_category(category_id):
+    questions = util.get_questions(category_id=category_id, formatted=True)
+    return jsonify({
+      "success": True,
+      "questions": questions,
+      "total_questions": len(questions),
+      "current_category": category_id
+      })
+
   '''
   @TODO: 
   Create an endpoint to DELETE question using a question ID. 
@@ -83,7 +92,8 @@ def create_app(test_config=None):
   '''
   @app.route('/questions/<question_id>', methods=['DELETE'])
   def delete_question(question_id):
-    Question.get(question_id).delete()
+    selected_question = Question.query.get(question_id)
+    selected_question.delete()
     return jsonify({
       "success": True
       })
@@ -98,11 +108,17 @@ def create_app(test_config=None):
   the form will clear and the question will appear at the end of the last page
   of the questions list in the "List" tab.  
   '''
-  # @app.route('/questions/', methods=['POST'])
-  # def submit_question():
-  #   pass
-
-
+  @app.route('/questions', methods=['POST'])
+  def submit_question():
+    body = request.get_json()
+    new_question = Question(question = body.get('question'),
+                            answer = body.get('answer'),
+                            category = body.get('category'),
+                            difficulty = body.get('difficulty'))
+    new_question.insert()
+    return jsonify({
+      "success": True
+      })
 
   '''
   @TODO: 
@@ -114,6 +130,27 @@ def create_app(test_config=None):
   only question that include that string within their question. 
   Try using the word "title" to start. 
   '''
+  @app.route('/questions/search', methods=['POST'])
+  def search_questions():
+    body = request.get_json()
+
+    print(body)
+
+    search_term = body.get('searchTerm', '')
+    current_category = body.get('currentCategory')
+
+    search = "%{}%".format(search_term.lower())
+
+    filtered_questions = Question.query.filter(Question.question.ilike(search)).order_by('id').all()
+    formatted_questions = [question.format() for question in filtered_questions]
+
+    print(formatted_questions)
+    
+    return jsonify({
+      "questions": formatted_questions,
+      "total_questions": len(filtered_questions),
+      "current_category": current_category
+      })
 
   '''
   @TODO: 

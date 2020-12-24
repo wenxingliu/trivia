@@ -8,7 +8,7 @@ def get_categories(category_id: int = None, formatted: bool = False):
 		categories = Category.query.filter_by(id=category_id).one_or_none()
 
 	if formatted:
-		return [category.format() for category in categories]
+		return {category.id: category.type for category in categories}
 	else:
 		return categories
 
