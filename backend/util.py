@@ -16,6 +16,8 @@ def get_categories(category_id: int = None, formatted: bool = False):
 def get_questions(category_id: int = None, 
 				  question_id: int = None, 
 				  formatted: bool = False):
+	if category_id == 0:
+		category_id = None
 	if (category_id is None) and (question_id is None):
 		questions = Question.query.order_by('id').all()
 	elif (question_id is None) and (category_id is not None):
