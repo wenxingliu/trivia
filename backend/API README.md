@@ -24,7 +24,7 @@ The API will return three error types when requests fail:
 
 ## Endpoints
 
-### GET '/categories'
+### GET `/categories`
 - Fetches a dictionary of categories in which the keys are the ids and the value is the corresponding string of the category
 - Request Arguments: None
 - Sample Response
@@ -43,7 +43,7 @@ The API will return three error types when requests fail:
 }
 ```
 
-### GET '/questions'
+### GET `/questions`
 - Fetches a list of questions. Each item in the list is a question with its answer, category and difficulty. This GET call is paginated, with 10 questions per page.
 - Request Arguments: None
 - Sample Response
@@ -73,7 +73,7 @@ The API will return three error types when requests fail:
 }
 ```
 
-### DELETE '/questions/<question_id>'
+### DELETE `/questions/<question_id>`
 - Deletes a specific question given its ID.
 - Request Arguments: question ID
 - Success Response
@@ -83,7 +83,7 @@ The API will return three error types when requests fail:
 }
 ```
 
-### POST '/questions'
+### POST `/questions`
 - Creates a question.
 - Sample Body
 ```
@@ -99,7 +99,7 @@ The API will return three error types when requests fail:
 {"success": True}
 ```
 
-### POST '/questions/search'
+### POST `/questions/search`
 - Get questions based on a search term, not case sensitive.
 - Sample Body
 ```
@@ -111,7 +111,7 @@ The API will return three error types when requests fail:
 ```
 ```
 
-### GET '/categories/<category_id>/questions'
+### GET `/categories/<category_id>/questions`
 - Get questions based on category
 - Request Arguments: category id
 - Sample Response
@@ -146,7 +146,7 @@ The API will return three error types when requests fail:
 }
 ```
 
-### POST '/quizzes'
+### POST `/quizzes`
 - Get questions to play the quiz. This endpoint should take category and previous question parameters and return a random question within the given category, if provided, and that is not one of the previous questions. 
 - Sample Body
 ```
