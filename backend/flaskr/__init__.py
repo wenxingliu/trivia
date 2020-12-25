@@ -6,8 +6,10 @@ import random
 
 from models import setup_db, Question, Category
 import util as util
+from exceptions import *
 
 QUESTIONS_PER_PAGE = 10
+
 
 def create_app(test_config=None):
   # create and configure the app
@@ -39,14 +41,18 @@ def create_app(test_config=None):
       categories = util.get_categories(formatted=True)
 
       if not categories:
-        abort(404)
+        raise ResourceNotFound
 
       return jsonify({
         "success": True,
         "categories": categories,
         "total_categories": len(categories)
         })
-    except:
+
+    except ResourceNotFound:
+      abort(404)
+
+    except Exception:
       abort(500)
 
   '''
@@ -73,7 +79,10 @@ def create_app(test_config=None):
       end = start + QUESTIONS_PER_PAGE
 
       questions_on_selected_page = [question.format() for question in questions[start: end]]
-  
+      
+      if not questions_on_selected_page:
+        raise ResourceNotFound
+
       return jsonify({
         "success": True,
         "questions": questions_on_selected_page,
@@ -82,8 +91,11 @@ def create_app(test_config=None):
         "current_category": current_category
         })
 
-    except:
+    except ResourceNotFound:
       abort(404)
+
+    except Exception:
+      abort(500)
 
 
   '''
@@ -98,10 +110,12 @@ def create_app(test_config=None):
     try:
       selected_question = Question.query.get(question_id)
       selected_question.delete()
+
       return jsonify({
         "success": True
         })
-    except:
+
+    except Exception:
       abort(422)
 
   '''
@@ -117,16 +131,30 @@ def create_app(test_config=None):
   @app.route('/questions', methods=['POST'])
   def submit_question():
     try:
-      body = request.get_json()
-      new_question = Question(question = body.get('question'),
-                              answer = body.get('answer'),
-                              category = body.get('category'),
-                              difficulty = body.get('difficulty'))
+      
+      try:
+        body = request.get_json()
+        question_str = body['question']
+        answer_str = body['answer']
+        category_str = body['category']
+        difficulty_str = body['difficulty']
+      except:
+        raise BadRequest
+
+      new_question = Question(question = question_str,
+                              answer = answer_str,
+                              category = category_str,
+                              difficulty = difficulty_str)
       new_question.insert()
+      
       return jsonify({
         "success": True
         })
-    except:
+
+    except BadRequest:
+      abort(400)
+
+    except Exception:
       abort(422)
 
   '''
@@ -142,19 +170,22 @@ def create_app(test_config=None):
   @app.route('/questions/search', methods=['POST'])
   def search_questions():
     try:
-      body = request.get_json()
 
-      print(body)
-
-      search_term = body.get('searchTerm', '')
-      current_category = body.get('currentCategory')
+      try:
+        body = request.get_json()
+        search_term = body['searchTerm']
+        current_category = body.get('currentCategory')
+      except:
+        raise BadRequest
 
       search = "%{}%".format(search_term.lower())
 
       filtered_questions = Question.query.filter(Question.question.ilike(search)).order_by('id').all()
-      formatted_questions = [question.format() for question in filtered_questions]
 
-      print(formatted_questions)
+      if not filtered_questions:
+        raise ResourceNotFound
+
+      formatted_questions = [question.format() for question in filtered_questions]
       
       return jsonify({
         "questions": formatted_questions,
@@ -162,8 +193,14 @@ def create_app(test_config=None):
         "current_category": current_category
         })
 
-    except:
+    except BadRequest:
+      abort(400)
+
+    except ResourceNotFound:
       abort(404)
+
+    except Exception:
+      abort(500)
 
   '''
   @TODO: 
@@ -177,14 +214,22 @@ def create_app(test_config=None):
   def get_questions_by_category(category_id):
     try:
       questions = util.get_questions(category_id=category_id, formatted=True)
+
+      if not questions:
+        raise ResourceNotFound
+
       return jsonify({
         "success": True,
         "questions": questions,
         "total_questions": len(questions),
         "current_category": category_id
         })
-    except:
+
+    except ResourceNotFound:
       abort(404)
+
+    except Exception:
+      abort(500)
 
   '''
   @TODO: 
@@ -200,12 +245,15 @@ def create_app(test_config=None):
   @app.route('/quizzes', methods=['POST'])
   def play_quizzes():
     try:
-      body = request.get_json()
-      print(body)
-      previous_questions_id = body.get('previous_questions')
-      quiz_category = body.get('quiz_category')
-      quiz_category_id = quiz_category.get('id')
-
+  
+      try:
+        body = request.get_json()
+        previous_questions_id = body['previous_questions']
+        quiz_category = body['quiz_category']
+        quiz_category_id = quiz_category['id']
+      except:
+        raise BadRequest
+  
       questions = util.get_questions(category_id=quiz_category_id, formatted=False)
 
       unanswered_questions = [question for question in questions 
@@ -220,9 +268,12 @@ def create_app(test_config=None):
         "success": True,
         "question": rand_question
         })
-      
-    except:
-      abort(422)
+
+    except BadRequest:
+      abort(400)
+
+    except Exception:
+      abort(500)
       
 
   '''
@@ -230,29 +281,21 @@ def create_app(test_config=None):
   Create error handlers for all expected errors 
   including 404 and 422. 
   '''
+  @app.errorhandler(400)
+  def bad_request(error):
+    return jsonify(error_messages["BadRequest"]), 400
+
   @app.errorhandler(404)
   def resource_not_found(error):
-    return jsonify({
-      "success": False,
-      "message": "Resource Not Found",
-      "status_code": 404
-      }), 404
+    return jsonify(error_messages["ResourceNotFound"]), 404
 
   @app.errorhandler(422)
   def unprocessable_entity(error):
-    return jsonify({
-      "success": False,
-      "message": "Unprocessable Entity",
-      "status_code": 422
-      }), 422
+    return jsonify(error_messages["UnprocessableEntity"]), 422
 
   @app.errorhandler(500)
   def internal_error(error):
-    return jsonify({
-      "success": False,
-      "message": "Internal Error",
-      "status_code": 500
-      }), 500
+    return jsonify(error_messages["InternalError"]), 500
   
   return app
 
