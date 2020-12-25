@@ -145,9 +145,9 @@ def create_app(test_config=None):
                 raise BadRequest
 
             new_question = Question(question = question_str,
-                                  answer = answer_str,
-                                  category = category_str,
-                                  difficulty = difficulty_str)
+                                    answer = answer_str,
+                                    category = category_str,
+                                    difficulty = difficulty_str)
             new_question.insert()
           
             return jsonify({
